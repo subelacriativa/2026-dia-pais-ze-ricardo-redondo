@@ -14,7 +14,6 @@
     <meta property="og:url" content="https://subelacriativa.github.io/2026-dia-pais-ze-ricardo-redondo/">
     <meta property="og:type" content="website">
 
-    <link rel="preload" href="video-2026-dia-pais-ze-ricardo-redondo.mp4" as="video">
     <link rel="preload" href="fundo.jpg" as="image">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -295,6 +294,7 @@
             font-weight: 400;
         }
 
+        /* --- ESTILOS DO APRESENTADOR DE FOTOS --- */
         #container-player {
             position: fixed;
             top: 0;
@@ -309,10 +309,28 @@
             align-items: center;
         }
 
-        video {
+        .carrossel-fotos {
+            position: relative;
             width: 100%;
             height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .foto-slide {
+            position: absolute;
+            max-width: 90%;
+            max-height: 80vh;
             object-fit: contain;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        .foto-slide.ativa {
+            opacity: 1;
         }
 
         #menu-fim-video {
@@ -523,8 +541,16 @@
 </div>
 
 <div id="container-player">
-    <video id="video-principal" src="video-2026-dia-pais-ze-ricardo-redondo.mp4" crossorigin="anonymous" playsinline muted preload="metadata" controlslist="nodownload" disablepictureinpicture></video>
+    <audio id="audio-principal" src="musica_ze_ricardo.mp3" preload="auto"></audio>
     
+    <div class="carrossel-fotos">
+        <img src="foto_02.jpeg" class="foto-slide ativa" alt="Foto 2">
+        <img src="foto_03.jpeg" class="foto-slide" alt="Foto 3">
+        <img src="foto_04.jpeg" class="foto-slide" alt="Foto 4">
+        <img src="foto_05.jpeg" class="foto-slide" alt="Foto 5">
+        <img src="foto_06.jpeg" class="foto-slide" alt="Foto 6">
+    </div>
+
     <div id="menu-fim-video">
         <h2>O que deseja fazer agora?</h2>
         <button class="btn-principal btn-azul" id="btn-repetir">🔄 Assistir Novamente</button>
@@ -546,10 +572,6 @@
             Compartilhar no WhatsApp
         </a>
         
-        <a href="video-2026-dia-pais-ze-ricardo-redondo.mp4" download="video-2026-dia-pais-ze-ricardo-redondo.mp4" target="_blank" rel="noopener noreferrer" class="btn-opcao baixar">
-            Salvar Vídeo na Galeria
-        </a>
-
         <button class="btn-opcao btn-recomecar" id="btn-recomecar-tudo">
             ↩️ Voltar para o início
         </button>
@@ -560,6 +582,8 @@
     // Configuração da Senha do Cofre
     const SENHA_CORRETA = "2020";
     let senhaDigitada = "";
+    let intervalFotos = null;
+    let fotoAtual = 0;
 
     const app = {
         animacaoFogosAtiva: false
@@ -694,6 +718,37 @@
         requestAnimationFrame(loopFogos);
     }
 
+    /* --- LÓGICA DAS FOTOS E ÁUDIO --- */
+    function iniciarApresentacaoFotos() {
+        const fotos = document.querySelectorAll('.foto-slide');
+        const audio = document.getElementById('audio-principal');
+        
+        fotoAtual = 0;
+        fotos.forEach((f, idx) => f.classList.toggle('ativa', idx === 0));
+
+        audio.currentTime = 0;
+        audio.play().catch(err => console.log("Aviso de auto-play ajustado.", err));
+
+        if (intervalFotos) clearInterval(intervalFotos);
+        
+        let ciclos = 0;
+        intervalFotos = setInterval(() => {
+            fotos[fotoAtual].classList.remove('ativa');
+            fotoAtual = (fotoAtual + 1) % fotos.length;
+            fotos[fotoAtual].classList.add('ativa');
+            
+            ciclos++;
+            if (ciclos >= fotos.length * 2) { 
+                clearInterval(intervalFotos);
+                document.getElementById('menu-fim-video').style.display = 'flex';
+            }
+        }, 3500); 
+
+        audio.onended = () => {
+            document.getElementById('menu-fim-video').style.display = 'flex';
+        };
+    }
+
     function acionarSucesso() {
         if (navigator.vibrate) {
             navigator.vibrate([200, 100, 200, 100, 300]);
@@ -714,9 +769,7 @@
                 document.getElementById('efeito-fogos').style.display = 'none';
                 document.getElementById('container-player').style.display = 'flex';
                 
-                const video = document.getElementById('video-principal');
-                video.muted = false;
-                video.play().catch(err => console.log("Aviso de auto-play ajustado.", err));
+                iniciarApresentacaoFotos();
             }, 3200);
         }, 600);
     }
@@ -726,20 +779,15 @@
         document.getElementById('tela-jogo').style.display = 'block';
     });
 
-    on("video-principal", "ended", () => {
-        document.getElementById('menu-fim-video').style.display = 'flex';
-    });
-
     on("btn-repetir", "click", () => {
         document.getElementById('menu-fim-video').style.display = 'none';
-        const video = document.getElementById('video-principal');
-        video.currentTime = 0;
-        video.play();
+        iniciarApresentacaoFotos();
     });
 
     on("btn-voltar", "click", () => {
-        const video = document.getElementById('video-principal');
-        video.pause();
+        const audio = document.getElementById('audio-principal');
+        audio.pause();
+        if (intervalFotos) clearInterval(intervalFotos);
         document.getElementById('menu-fim-video').style.display = 'none';
         document.getElementById('container-player').style.display = 'none';
         document.getElementById('tela-final').style.display = 'block';
